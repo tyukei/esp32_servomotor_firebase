@@ -1,80 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Servo Control with Auth</title>
-  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-database.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #2c3e50; color: white; text-align: center; padding: 50px; }
-    h1 { margin-bottom: 30px; }
-    input[type='number'], input[type='email'], input[type='password'] { padding: 10px; font-size: 1em; margin: 10px; }
-    button { padding: 10px 20px; font-size: 1em; background: #3498db; border: none; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servo Control</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f0f0; text-align: center; padding: 50px; }
+        .container { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
 </head>
 <body>
-  <h1>Servo Control</h1>
-  <div id="login-section">
-    <input type="email" id="email" placeholder="Email" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button onclick="login()">Login</button>
-  </div>
-  <div id="control-section" style="display: none;">
-    <input type="number" id="angle" min="0" max="180" placeholder="Enter angle (0-180)">
-    <button onclick="setServoAngle()">Move</button>
-  </div>
-  <script>
-    // Firebaseの設定
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
+    <div class="container">
+        <h1>Servo Control</h1>
+        <div id="login-section">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button onclick="login()">Login</button>
+        </div>
+        <div id="control-section" style="display: none;">
+            <input type="number" id="angle" placeholder="Enter angle (0-180)" min="0" max="180">
+            <button onclick="setServoAngle()">Set Angle</button>
+        </div>
+    </div>
 
-    // ログイン処理
-    function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      firebase.auth().signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          // トークンを取得
-          userCredential.user.getIdToken().then((token) => {
-            console.log("Auth Token:", token);
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('control-section').style.display = 'block';
-            localStorage.setItem('authToken', token); // トークンを保存
-          });
-        })
-        .catch((error) => {
-          console.error("Login Error:", error);
-          alert("Login failed: " + error.message);
-        });
-    }
+    <script>
+        // Firebaseの設定
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-    // サーボモータの角度を設定
-    function setServoAngle() {
-      const angle = document.getElementById('angle').value;
-      const token = localStorage.getItem('authToken');
-      if (angle >= 0 && angle <= 180) {
-        fetch(`https://YOUR_PROJECT_ID.firebaseio.com/servo.json?auth=${token}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ angle: parseInt(angle) })
-        }).then(response => response.json())
-          .then(data => {
-            alert('Servo angle set to ' + angle);
-          }).catch(error => {
-            console.error("Error:", error);
-          });
-      } else {
-        alert('Please enter a valid angle (0-180).');
-      }
-    }
-  </script>
+        // Firebaseの初期化
+        firebase.initializeApp(firebaseConfig);
+
+        // ログイン処理
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('control-section').style.display = 'block';
+                })
+                .catch((error) => {
+                    console.error("Login Error:", error);
+                    alert("Login failed: " + error.message);
+                });
+        }
+
+        // サーボモータの角度をFirebaseに設定
+        function setServoAngle() {
+            const angle = document.getElementById('angle').value;
+            if (angle >= 0 && angle <= 180) {
+                firebase.database().ref('/servo').set({
+                    angle: parseInt(angle)
+                }).then(() => {
+                    alert('Servo angle set to ' + angle);
+                }).catch((error) => {
+                    console.error("Error:", error);
+                });
+            } else {
+                alert('Please enter a valid angle (0-180).');
+            }
+        }
+    </script>
 </body>
 </html>
