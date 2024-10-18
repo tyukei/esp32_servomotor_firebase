@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Servo Control with Auth</title>
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-database.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #2c3e50; color: white; text-align: center; padding: 50px; }
+    h1 { margin-bottom: 30px; }
+    input[type='number'], input[type='email'], input[type='password'] { padding: 10px; font-size: 1em; margin: 10px; }
+    button { padding: 10px 20px; font-size: 1em; background: #3498db; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Servo Control</h1>
+  <div id="login-section">
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button onclick="login()">Login</button>
+  </div>
+  <div id="control-section" style="display: none;">
+    <input type="number" id="angle" min="0" max="180" placeholder="Enter angle (0-180)">
+    <button onclick="setServoAngle()">Move</button>
+  </div>
+  <script>
+    // Firebaseの設定
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    // ログイン処理
+    function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // トークンを取得
+          userCredential.user.getIdToken().then((token) => {
+            console.log("Auth Token:", token);
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('control-section').style.display = 'block';
+            localStorage.setItem('authToken', token); // トークンを保存
+          });
+        })
+        .catch((error) => {
+          console.error("Login Error:", error);
+          alert("Login failed: " + error.message);
+        });
+    }
+
+    // サーボモータの角度を設定
+    function setServoAngle() {
+      const angle = document.getElementById('angle').value;
+      const token = localStorage.getItem('authToken');
+      if (angle >= 0 && angle <= 180) {
+        fetch(`https://YOUR_PROJECT_ID.firebaseio.com/servo.json?auth=${token}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ angle: parseInt(angle) })
+        }).then(response => response.json())
+          .then(data => {
+            alert('Servo angle set to ' + angle);
+          }).catch(error => {
+            console.error("Error:", error);
+          });
+      } else {
+        alert('Please enter a valid angle (0-180).');
+      }
+    }
+  </script>
+</body>
+</html>
